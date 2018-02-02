@@ -1,4 +1,4 @@
-import {vec4, mat4} from 'gl-matrix';
+import {vec2,vec4, mat4} from 'gl-matrix';
 import Drawable from './Drawable';
 import {gl} from '../../globals';
 
@@ -22,13 +22,10 @@ class ShaderProgram {
   prog: WebGLProgram;
 
   attrPos: number;
-  attrNor: number;
-  attrCol: number;
 
-  unifModel: WebGLUniformLocation;
-  unifModelInvTr: WebGLUniformLocation;
-  unifViewProj: WebGLUniformLocation;
-  unifColor: WebGLUniformLocation;
+  unifView: WebGLUniformLocation;
+  unifResolution: WebGLUniformLocation;
+  unifTime: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -41,13 +38,14 @@ class ShaderProgram {
       throw gl.getProgramInfoLog(this.prog);
     }
 
+    // Raymarcher only draws a quad in screen space! No other attributes
     this.attrPos = gl.getAttribLocation(this.prog, "vs_Pos");
-    this.attrNor = gl.getAttribLocation(this.prog, "vs_Nor");
-    this.attrCol = gl.getAttribLocation(this.prog, "vs_Col");
-    this.unifModel      = gl.getUniformLocation(this.prog, "u_Model");
-    this.unifModelInvTr = gl.getUniformLocation(this.prog, "u_ModelInvTr");
-    this.unifViewProj   = gl.getUniformLocation(this.prog, "u_ViewProj");
-    this.unifColor      = gl.getUniformLocation(this.prog, "u_Color");
+
+    // TODO: add other attributes here
+    this.unifView   = gl.getUniformLocation(this.prog, "u_View");
+    this.unifResolution   = gl.getUniformLocation(this.prog, "u_Resolution");
+    this.unifTime     = gl.getUniformLocation(this.prog, "u_Time");
+
   }
 
   use() {
@@ -57,33 +55,19 @@ class ShaderProgram {
     }
   }
 
-  setModelMatrix(model: mat4) {
+  setResolution(resolution: vec2) {
     this.use();
-    if (this.unifModel !== -1) {
-      gl.uniformMatrix4fv(this.unifModel, false, model);
-    }
-
-    if (this.unifModelInvTr !== -1) {
-      let modelinvtr: mat4 = mat4.create();
-      mat4.transpose(modelinvtr, model);
-      mat4.invert(modelinvtr, modelinvtr);
-      gl.uniformMatrix4fv(this.unifModelInvTr, false, modelinvtr);
+    if (this.unifResolution !== -1) {
+      gl.uniform2fv(this.unifResolution, resolution);
     }
   }
-
-  setViewProjMatrix(vp: mat4) {
+  setTime(time: number) {
     this.use();
-    if (this.unifViewProj !== -1) {
-      gl.uniformMatrix4fv(this.unifViewProj, false, vp);
+    if (this.unifTime !== -1) {
+      gl.uniform1f(this.unifTime, time);
     }
   }
-
-  setGeometryColor(color: vec4) {
-    this.use();
-    if (this.unifColor !== -1) {
-      gl.uniform4fv(this.unifColor, color);
-    }
-  }
+  // TODO: add functions to modify uniforms
 
   draw(d: Drawable) {
     this.use();
@@ -93,16 +77,11 @@ class ShaderProgram {
       gl.vertexAttribPointer(this.attrPos, 4, gl.FLOAT, false, 0, 0);
     }
 
-    if (this.attrNor != -1 && d.bindNor()) {
-      gl.enableVertexAttribArray(this.attrNor);
-      gl.vertexAttribPointer(this.attrNor, 4, gl.FLOAT, false, 0, 0);
-    }
-
     d.bindIdx();
     gl.drawElements(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0);
 
     if (this.attrPos != -1) gl.disableVertexAttribArray(this.attrPos);
-    if (this.attrNor != -1) gl.disableVertexAttribArray(this.attrNor);
+
   }
 };
 
