@@ -1,4 +1,4 @@
-import {vec3} from 'gl-matrix';
+import {vec2,vec3} from 'gl-matrix';
 import * as Stats from 'stats-js';
 import * as DAT from 'dat-gui';
 import Square from './geometry/Square';
@@ -10,6 +10,7 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
   // TODO: add any controls you want
+  time: 0.0,
 };
 
 let screenQuad: Square;
@@ -26,7 +27,7 @@ function main() {
   // TODO: add any controls you need to the gui
   const gui = new DAT.GUI();
   // E.G. gui.add(controls, 'tesselations', 0, 8).step(1);
-
+  
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
 
@@ -61,9 +62,11 @@ function main() {
     camera.update();
     stats.begin();
 
+
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    raymarchShader.setTime(controls.time);
     // TODO: get / calculate relevant uniforms to send to shader here
     // TODO: send uniforms to shader
 
@@ -73,6 +76,8 @@ function main() {
     // TODO: more shaders to layer / process the first one? (either via framebuffers or blending)
 
     stats.end();
+    controls.time += 0.005;
+
 
     // Tell the browser to call `tick` again whenever it renders a new frame
     requestAnimationFrame(tick);
@@ -86,6 +91,7 @@ function main() {
 
   setSize(window.innerWidth, window.innerHeight);
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
+  raymarchShader.setResolution(vec2.fromValues(window.innerWidth, window.innerHeight));
   camera.updateProjectionMatrix();
 
   // Start the render loop
