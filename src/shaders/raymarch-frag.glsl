@@ -12,10 +12,21 @@ const int MAX_MARCHING_STEPS = 255;
 const float MIN_DIST = 0.0;
 const float MAX_DIST = 100.0;
 const float EPSILON = 0.0001;
+const float epsilon = .003;
+const float normalPrecision = .1;
+const float shadowOffset = .1;
+const int traceDepth = 100; // takes time
+const float drawDistance = 100.0;
 
-/**
- * Rotation matrix around the X axis.
- */
+const vec3 lightDir = vec3(.7,1,-.1);
+const vec3 fillLightDir = vec3(0,0,-1);
+const vec3 lightColour = vec3(1.1,1.05,1);
+const vec3 fillLightColour = vec3(.38,.4,.42);
+
+const vec3 color0 = vec3(1.0, 0.0, 0.2);
+const vec3 color1 = vec3(0.0, 0.6, 0.6);
+
+//sphere marching and sdfs based on: http://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
 mat3 rotateX(float theta) {
     float c = cos(theta);
     float s = sin(theta);
@@ -26,9 +37,6 @@ mat3 rotateX(float theta) {
     );
 }
 
-/**
- * Rotation matrix around the Y axis.
- */
 mat3 rotateY(float theta) {
     float c = cos(theta);
     float s = sin(theta);
@@ -39,9 +47,6 @@ mat3 rotateY(float theta) {
     );
 }
 
-/**
- * Rotation matrix around the Z axis.
- */
 mat3 rotateZ(float theta) {
     float c = cos(theta);
     float s = sin(theta);
@@ -52,56 +57,34 @@ mat3 rotateZ(float theta) {
     );
 }
 
-/**
- * Constructive solid geometry intersection operation on SDF-calculated distances.
- */
 float intersectSDF(float distA, float distB) {
     return max(distA, distB);
 }
 
-/**
- * Constructive solid geometry union operation on SDF-calculated distances.
- */
 float unionSDF(float distA, float distB) {
     return min(distA, distB);
 }
 
-/**
- * Constructive solid geometry difference operation on SDF-calculated distances.
- */
 float differenceSDF(float distA, float distB) {
     return max(distA, -distB);
 }
 
-/**
- * Signed distance function for a cube centered at the origin
- * with dimensions specified by size.
- */
+
 float boxSDF(vec3 p, vec3 size) {
     vec3 d = abs(p) - (size / 2.0);
-    
-    // Assuming p is inside the cube, how far is it from the surface?
-    // Result will be negative or zero.
+
     float insideDistance = min(max(d.x, max(d.y, d.z)), 0.0);
     
-    // Assuming p is outside the cube, how far is it from the surface?
-    // Result will be positive or zero.
     float outsideDistance = length(max(d, 0.0));
     
     return insideDistance + outsideDistance;
 }
 
-/**
- * Signed distance function for a sphere centered at the origin with radius r.
- */
 float sphereSDF(vec3 p, float r) {
     return length(p) - r;
 }
 
-/**
- * Signed distance function for an XY aligned cylinder centered at the origin with
- * height h and radius r.
- */
+
 float cylinderSDF(vec3 p, float h, float r) {
     // How far inside or outside the cylinder the point is, radially
     float inOutRadius = length(p.xy) - r;
@@ -120,13 +103,6 @@ float cylinderSDF(vec3 p, float h, float r) {
     return insideDistance + outsideDistance;
 }
 
-/**
- * Signed distance function describing the scene.
- * 
- * Absolute value of the return value indicates the distance to the surface.
- * Sign indicates whether the point is inside or outside the surface,
- * negative indicating inside.
- */
  float innerLotus(vec3 samplePoint) {    
     // Slowly spin the whole scene
     
@@ -278,21 +254,7 @@ float cylinderSDF(vec3 p, float h, float r) {
 	float side2 = unionSDF(group3, group4);
 
     
-    // float ballOffset = 0.4 + 1.0 + sin(1.7 * u_Time);
-    // float ballRadius = 0.3;
-    // float balls = sphereSDF(samplePoint - vec3(ballOffset, 0.0, 0.0), ballRadius);
-    // balls = unionSDF(balls, sphereSDF(samplePoint + vec3(ballOffset, 0.0, 0.0), ballRadius));
-    // balls = unionSDF(balls, sphereSDF(samplePoint - vec3(0.0, ballOffset, 0.0), ballRadius));
-    // balls = unionSDF(balls, sphereSDF(samplePoint + vec3(0.0, ballOffset, 0.0), ballRadius));
-    // balls = unionSDF(balls, sphereSDF(samplePoint - vec3(0.0, 0.0, ballOffset), ballRadius));
-    // balls = unionSDF(balls, sphereSDF(samplePoint + vec3(0.0, 0.0, ballOffset), ballRadius));
-    
-    return  unionSDF(side1,side2);//unionSDF(group1,group2);
-    
-    // float csgNut = differenceSDF(intersectSDF(cube, sphere),
-    //                      unionSDF(cylinder1, unionSDF(cylinder2, cylinder3)));
-    
-    //return unionSDF(differenceSDF(cylinder2, sphere), differenceSDF(cylinder21, sphere21)); //unionSDF(cylinder1, unionSDF(cylinder2, cylinder3));
+    return  unionSDF(side1,side2);
 }
 float mainLotus(vec3 samplePoint) {    
     // Slowly spin the whole scene
@@ -449,26 +411,16 @@ float mainLotus(vec3 samplePoint) {
 	float group4= unionSDF(petal7, petal8);
 
 	float side2 = unionSDF(group3, group4);
-
     
-    // float ballOffset = 0.4 + 1.0 + sin(1.7 * u_Time);
-    // float ballRadius = 0.3;
-    // float balls = sphereSDF(samplePoint - vec3(ballOffset, 0.0, 0.0), ballRadius);
-    // balls = unionSDF(balls, sphereSDF(samplePoint + vec3(ballOffset, 0.0, 0.0), ballRadius));
-    // balls = unionSDF(balls, sphereSDF(samplePoint - vec3(0.0, ballOffset, 0.0), ballRadius));
-    // balls = unionSDF(balls, sphereSDF(samplePoint + vec3(0.0, ballOffset, 0.0), ballRadius));
-    // balls = unionSDF(balls, sphereSDF(samplePoint - vec3(0.0, 0.0, ballOffset), ballRadius));
-    // balls = unionSDF(balls, sphereSDF(samplePoint + vec3(0.0, 0.0, ballOffset), ballRadius));
-    
-    return  unionSDF(side1,side2);//unionSDF(group1,group2);
+    return  unionSDF(side1,side2);
     
 }
 
 float ball(vec3 samplePoint){
-    float cylinderRadius = 0.25f; //0.4 + (1.0 - 0.4) * (1.0 + sin(1.7 * u_Time)) / 2.0;
-    float cylinder1 = cylinderSDF(rotateX(radians(90.0)) * samplePoint, 1.3, cylinderRadius * 1.3);
-    float cylinder2 = cylinderSDF(rotateX(radians(90.0)) * samplePoint, 1.3, cylinderRadius / 2.0);
-    float cylinder = differenceSDF(cylinder1, cylinder2);
+    // float cylinderRadius = 0.25f; //0.4 + (1.0 - 0.4) * (1.0 + sin(1.7 * u_Time)) / 2.0;
+    // float cylinder1 = cylinderSDF(rotateX(radians(90.0)) * samplePoint, 1.3, cylinderRadius * 1.3);
+    // float cylinder2 = cylinderSDF(rotateX(radians(90.0)) * samplePoint, 1.3, cylinderRadius / 2.0);
+    // float cylinder = differenceSDF(cylinder1, cylinder2);
     float ballOffset = 0.3 + (sin(22.0 * u_Time) / 2.1f);
     float maxOffset = 0.3 + (1.0f / 2.1f);
     float ballRadius = 0.3;
@@ -479,8 +431,7 @@ float ball(vec3 samplePoint){
     balls = unionSDF(balls, sphereSDF(samplePoint - vec3(0.0, ballOffset, 0.0), ballRadius * 0.8));
     balls = unionSDF(balls, sphereSDF(samplePoint - vec3(0.0, 0.0, maxOffset) + vec3(0.0, 0.0, ballOffset), ballRadius * 0.5));
     balls = unionSDF(balls, sphereSDF(samplePoint + vec3(0.0, 0.0, maxOffset) - vec3(0.0, 0.0, ballOffset), ballRadius * 0.5));
-    return balls;//differenceSDF(balls, cylinder);
-    //balls = unionSDF(balls, sphereSDF(samplePoint - vec3(0.0, ballOffset, 0.0), ballRadius));
+    return balls;
 }
 
 float opRep( vec3 p, vec3 c )
@@ -625,6 +576,62 @@ vec3 phongIllumination(vec3 k_a, vec3 k_d, vec3 k_s, float alpha, vec3 p, vec3 e
     return color;
 }
 
+// alpha controls reflection
+vec4 Shading( vec3 pos, vec3 norm, float shadow, vec3 rd )
+{
+	vec3 albedo = vec3(1);//mix( vec3(1,.8,.7), vec3(.5,.2,.1), Noise(pos*vec3(1,10,1)) );
+
+	vec3 l = shadow*lightColour*max(0.0,dot(norm,normalize(lightDir)));
+	vec3 fl = fillLightColour*(dot(norm,normalize(fillLightDir))*.5+.5);
+	
+	vec3 view = normalize(-rd);
+	vec3 h = normalize(view+lightDir);
+	float specular = pow(max(0.0,dot(h,norm)),2000.0);
+	
+	float fresnel = pow( 1.0 - dot( view, norm ), 5.0 );
+	fresnel = mix( .7, 1.0, min(1.0,fresnel) );
+	
+	return vec4( albedo*(l+fl)*(1.0-fresnel) + shadow*specular*32.0*lightColour, fresnel );
+}
+//based on this shader: https://www.shadertoy.com/view/MdX3Rl
+void getReflection( inout vec4 result, inout vec3 ro, inout vec3 rd )
+{
+	if ( result.a < .01 )
+		return; // continue; // break;
+	
+	float t = shortestDistanceToSurface(ro,rd, MIN_DIST, MAX_DIST);
+	
+	vec4 samplev = vec4( vec3(0.05,0.05,0.05), 0 );
+	
+	vec3 norm;
+	if (t <=  MAX_DIST - EPSILON)
+	{
+		ro = ro+t*rd;
+		
+		norm = estimateNormal(ro);
+		
+		// shadow test
+		float shadow = 1.0;
+        float shadowDistance = shortestDistanceToSurface(ro+lightDir*shadowOffset, lightDir, MIN_DIST, MAX_DIST );
+        
+		if ( shadowDistance >  MAX_DIST - EPSILON)
+			shadow = 0.0;
+		
+		samplev = Shading( ro, norm, shadow, rd );
+	}
+	
+	result.rgb += samplev.rgb*result.a;
+	result.a *= samplev.a;
+	result.a = clamp(result.a,0.0,1.0); // without this, chrome shows black!
+	
+	//		// fog
+	//		result = mix ( vec4(FogColour, 0), result, exp(-t*t*.0002) );
+	
+	rd = reflect(rd,norm);
+	
+	ro += rd*shadowOffset;
+}
+
 /**
  * Return a transform matrix that will transform a ray from view space
  * to world coordinates, given the eye point, the camera target, and an up vector.
@@ -640,11 +647,13 @@ mat3 viewMatrix(vec3 eye, vec3 center, vec3 up) {
     return mat3(s, u, -f);
 }
 
+//#define VAPORWAVY
+#define DRAKENGAARD
 void main()
 {
-	vec3 viewDir = rotateX(radians(5.0f)) * rayDirection(45.0, u_Resolution, vec2(((fs_Pos.x + 1.0f ) / 2.0f) * u_Resolution.x, ((fs_Pos.y + 1.0f ) / 2.0f) * u_Resolution.y));
+	vec3 viewDir = rotateX(radians(3.0f)) * rayDirection(45.0, u_Resolution, vec2(((fs_Pos.x + 1.0f ) / 2.0f) * u_Resolution.x, ((fs_Pos.y + 1.0f ) / 2.0f) * u_Resolution.y));
     //vec3 eye = vec3(8.0, 5.0 * sin(0.2 * u_Time), 7.0);
-    vec3 eye = vec3(0.0, 5.0 * sin(u_Time), 12.0);
+    vec3 eye = vec3(0.0, 5.0, 12.0);
     
     mat3 viewToWorld = viewMatrix(eye, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0));
     
@@ -654,10 +663,19 @@ void main()
     
     if (dist > MAX_DIST - EPSILON) {
         // Didn't hit anything
-        out_Col = vec4(0.0, 0.0, 0.0, 1.0);
+        vec2 A = vec2(0.1 * u_Resolution.xy);
+        vec2 B = vec2(u_Resolution.xy);
+        vec2 V = B - A;
+        vec2 pos = u_Resolution.xy * vec2(((fs_Pos.x + 1.0f ) / 2.0f),((fs_Pos.y + 1.0f ) / 2.0f));//fs_Pos * u_Resolution.xy;//vec2(((fs_Pos.x + 1.0f ) / 2.0f),((fs_Pos.y + 1.0f ) / 2.0f));
+        float s = dot(pos-A, V) / dot(V, V); // Vector projection.
+        s = clamp(s, 0.0, 1.0); // Saturate scaler.
+        vec3 colorG = mix(color1, color0, s); // Gradient color interpolation.
+    
+        colorG = pow(colorG, vec3(1.0/2.2)); // sRGB gamma encode.
+        out_Col = vec4(colorG, 1.0);
 		return;
     }
-    
+    #ifdef VAPORWAVY
     // The closest point on the surface to the eyepoint along the view ray
     vec3 p = eye + dist * worldDir;
     
@@ -668,6 +686,16 @@ void main()
     float shininess = 10.0;
     
     vec3 color = phongIllumination(K_a, K_d, K_s, shininess, p, eye);
+    out_Col = vec4(color,1.0);
+    #endif
+    #ifdef DRAKENGAARD
+    vec4 result = vec4(0,0,0,1);
+
+    // getReflection( result, eye, worldDir);
+
+	for ( int bounce = 0; bounce < 2; bounce ++ )
+		getReflection( result, eye, worldDir);
     
-    out_Col = vec4(color, 1.0);
+    out_Col = result;//vec4(color, 1.0);
+    #endif
 }
